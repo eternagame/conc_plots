@@ -166,7 +166,7 @@ def get_2d_space(s, nsteps=25, reporter=1e-9):
     return num/denom
 
 
-def plot(s, outfile, nsteps=25, reporter=1e-9):
+def plot(s, outfile, nsteps=25, reporter=1e-9, title=None):
     """
     make plot with 2D slices in each dimension and one for num vs denom
 
@@ -221,7 +221,9 @@ def plot(s, outfile, nsteps=25, reporter=1e-9):
     plt.xticks(ticks, ['10$^{%d}$' % np.log10(concrange[i]) for i in ticks])
     plt.yticks(ticks, ['10$^{%d}$' % np.log10(concrange[i]) for i in ticks])
 
-    plt.tight_layout()
+    if title is not None:
+        plt.suptitle(title)
+    plt.tight_layout(rect=[0,0,1,.95])
     plt.savefig(outfile, height=800, width=600)
 
 
@@ -231,11 +233,12 @@ def main():
     p.add_argument('inputfile', help='name of file containing conditions')
     p.add_argument('-o', '--outfile', help='name of output file',
                    default='concentration_heatmap.png')
+    p.add_argument('-t', '--title', help='title at top of plot')
     args = p.parse_args()
 
     inputs, reporter, complexes = parse_states(args.inputfile)
     s = get_pfs(args.sequence, inputs, reporter, complexes)
-    plot(s, args.outfile)
+    plot(s, args.outfile, title=args.title)
 
 
 if __name__ == '__main__':
