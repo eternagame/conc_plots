@@ -5,6 +5,7 @@ from nupack import utils as nupack
 import multiprocessing as mp
 import itertools as it
 import os
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 rt = 0.616
@@ -180,11 +181,20 @@ def plot(s, outfile, nsteps=25, reporter=1e-9, title=None):
 
     m = get_conc_space(s, nsteps, reporter)
     concrange = np.logspace(-15, -3, nsteps)
-    ticks = np.arange(0, nsteps, 8)
+    ticks = np.arange(0, nsteps, nsteps/4)
+
+    # find slice closest to reporter concentration
+    sliceidx = np.argmin(np.abs(np.log10(concrange) - np.log10(reporter)))
+
+    # colormap
+    cmap = mpl.colors.LinearSegmentedColormap.from_list('earth',
+        ['#d7b18e', '#A46C39', '#A48535', '#C2B02E', '#A7A036', '#869B40',
+         '#548540', '#3F7F60', '#28726E', '#008299', '#004999', '#002899'])
 
     # A vs B
     plt.subplot(221)
-    plt.imshow(m[:,:,12], cmap='gist_earth_r', interpolation='none', origin='lower')
+    plt.imshow(m[:,:,sliceidx].T, cmap=cmap, interpolation='none',
+               origin='lower')
     plt.colorbar()
     plt.xlabel('[A]')
     plt.ylabel('[B]')
@@ -193,7 +203,8 @@ def plot(s, outfile, nsteps=25, reporter=1e-9, title=None):
 
     # A vs C
     plt.subplot(222)
-    plt.imshow(m[:,12,:].T, cmap='gist_earth_r', interpolation='none', origin='lower')
+    plt.imshow(m[:,sliceidx,:].T, cmap=cmap, interpolation='none',
+               origin='lower')
     plt.colorbar()
     plt.xlabel('[A]')
     plt.ylabel('[C]')
@@ -202,7 +213,8 @@ def plot(s, outfile, nsteps=25, reporter=1e-9, title=None):
 
     # B vs C
     plt.subplot(223)
-    plt.imshow(m[12,:,:].T, cmap='gist_earth_r', interpolation='none', origin='lower')
+    plt.imshow(m[sliceidx,:,:].T, cmap=cmap, interpolation='none',
+               origin='lower')
     plt.colorbar()
     plt.xlabel('[B]')
     plt.ylabel('[C]')
@@ -214,7 +226,7 @@ def plot(s, outfile, nsteps=25, reporter=1e-9, title=None):
 
     # AB vs CC
     plt.subplot(224)
-    plt.imshow(m.T, cmap='gist_earth_r', interpolation='none', origin='lower')
+    plt.imshow(m.T, cmap=cmap, interpolation='none', origin='lower')
     plt.colorbar()
     plt.xlabel('[A][B]')
     plt.ylabel('[C]$^2$')
@@ -225,7 +237,7 @@ def plot(s, outfile, nsteps=25, reporter=1e-9, title=None):
         plt.suptitle(title)
     plt.tight_layout(rect=[0,0,1,.95])
     plt.savefig(outfile, height=800, width=600)
-
+    plt.close()
 
 def main():
     p = argparse.ArgumentParser()
@@ -234,11 +246,13 @@ def main():
     p.add_argument('-o', '--outfile', help='name of output file',
                    default='concentration_heatmap.png')
     p.add_argument('-t', '--title', help='title at top of plot')
+    p.add_argument('-n', '--nsteps', default=25, type=int,
+                   help='number of increments along each axis')
     args = p.parse_args()
 
     inputs, reporter, complexes = parse_states(args.inputfile)
     s = get_pfs(args.sequence, inputs, reporter, complexes)
-    plot(s, args.outfile, title=args.title)
+    plot(s, args.outfile, nsteps=args.nsteps, title=args.title)
 
 
 if __name__ == '__main__':
