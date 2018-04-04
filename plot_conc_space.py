@@ -6,6 +6,7 @@ import multiprocessing as mp
 import itertools as it
 import os
 import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 
 rt = 0.616
