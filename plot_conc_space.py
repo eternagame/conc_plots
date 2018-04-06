@@ -1,7 +1,7 @@
 import argparse
 import pandas as pd
 import numpy as np
-from nupack import utils as nupack
+from wuamitools.nupack import utils as nupack
 import multiprocessing as mp
 import itertools as it
 import os
