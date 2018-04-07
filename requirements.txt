@@ -1,4 +1,6 @@
 numpy>=1.14.2
 pandas>=0.22.0
 matplotlib>=2.2.2
+cherrypy>=14.0.1
+jinja2>=2.10
 git+ssh://git@github.com/wuami/tools@ergonomics

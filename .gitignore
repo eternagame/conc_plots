@@ -58,3 +58,7 @@ target/
 
 # Temporary databases
 *.tmp
+
+# Server jobs
+web/jobs/
+web/jobs.dat

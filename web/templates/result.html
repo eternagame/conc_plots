@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block head %}
+<script type="text/javascript">
+window.onload = function(){
+    setInterval(function(){
+        $.get('/jobstatus', {
+            job_id: document.URL.split('/').filter(function(el){return el != ''}).pop()
+        }, function(res) {
+           $('#completion').animate({
+               width: res.percent_complete + '%'
+           }).attr('aria-valuenow', res.percent_complete);
+           $('#charts').html(res.charts);
+        });
+    }, 5000);
+}
+</script>
+{% endblock head %}
+
+{% block content %}
+    <h2>Job {{job}}</h2>
+    {% if percent_complete != 100 %}
+    Completion: {{percent_complete}}%
+    <div class="progress">
+        <div id="completion" class="progress-bar" role="progressbar" style="width: {{percent_complete if percent_complete > 0 else 0.5 }}%" aria-valuenow="{{percent_complete}}" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+    {% endif %}
+    <div id="#charts">
+        {% include 'result_charts.html' %}
+    </div>
+{% endblock %}

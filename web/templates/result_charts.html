@@ -1,0 +1,8 @@
+{% for chart in charts %}
+<div class="card" style="width: 18rem;">
+  <img class="card-img-top" src="{{chart.src}}" alt="Card image cap">
+  <div class="card-body">
+    <p class="card-text">Sequence: {{chart.sequence}}</p>
+  </div>
+</div>
+{% endfor %}
