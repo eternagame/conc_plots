@@ -2,7 +2,7 @@
 {% block head %}
 <script type="text/javascript">
     function validateSequence(textbox) {
-        else if(!textbox.value.match(/^[augcAUGC]*$/)){
+        if(!textbox.value.match(/^[augcAUGC]*$/)){
             textbox.setCustomValidity('Sequence must be a series of the letters "A", "U", "G", and "C" (capital or lowercase)');
         }
         else {
@@ -18,13 +18,25 @@
 <p class="lead">NUPACK-Based Concentration Plots</p>
 <hr class="my-4">
 <form method="get" action="run-job">
-    <div class="form-group">
-        <label for="sequences">Squences<span class="required">*</span></label>
-        <textarea class="form-control" id="sequences" name="sequences" style="height: 110px" aria-describedby="seqHelp" placeholder="Sequence(s)" required></textarea>
-        <small id="seqHelp" class="form-text text-muted">
-            <a href="http://eternawiki.org/wiki/index.php5/Sequence">Sequence</a> string(s).
-            For multiple sequences, place each sequence on a new line
-        </small>
+    <ul class="nav nav-pills mb-3" id="myTab" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="tab-sequence" data-toggle="tab" href="#tab-sequence" role="tab" aria-controls="squence" aria-selected="true">Run Sequences</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link disabled" id="tab-design" data-toggle="tab" href="#tab-design" role="tab" aria-controls="design">Run Eterna Designs (Coming Soon)</a>
+        </li>
+    </ul>
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="tab-sequence" role="tabpanel" aria-labelledby="tab-sequence">
+            <div class="form-group">
+                <label for="sequences">Squences<span class="required">*</span></label>
+                <textarea class="form-control" id="sequences" name="sequences" style="height: 110px" aria-describedby="seqHelp" placeholder="Sequence(s)" required></textarea>
+                <small id="seqHelp" class="form-text text-muted">
+                    <a href="http://eternawiki.org/wiki/index.php5/Sequence">Sequence</a> string(s).
+                    For multiple sequences, place each sequence on a new line. Custom chart titles for each sequence coming soon.
+                </small>
+            </div>
+        </div>
     </div>
     <div class="form-group">
         <label for="lab">Lab<span class="required">*</span></label>

@@ -1,8 +1,14 @@
 {% for chart in charts %}
-<div class="card" style="width: 18rem;">
-  <img class="card-img-top" src="{{chart.src}}" alt="Card image cap">
-  <div class="card-body">
-    <p class="card-text">Sequence: {{chart.sequence}}</p>
-  </div>
+<div class="col-sm-4 d-flex">
+    <div class="card m-2">
+        <div class="fade-overlay" data-toggle="modal" data-target="#modal" role="button" data-src="/static/plots/{{chart.src}}">
+            <i class="fas fa-search-plus icon"></i>
+            <img class="card-img-top" src="/static/plots/{{chart.src}}" alt="Chart">
+        </div>
+        <div class="card-body">
+            <p class="card-text">Sequence: {{chart.sequence}}</p>
+            <a href="/static/plots/{{chart.src}}" download="{{chart.sequence}}" class="card-link">Download Image</a>
+        </div>
+    </div>
 </div>
 {% endfor %}

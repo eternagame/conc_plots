@@ -1,5 +1,5 @@
 from __future__ import division
-import os, json, re, threading, Queue
+import os, json, re, threading, Queue, traceback
 import cherrypy
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -28,26 +28,35 @@ except:
     pass
     
 class ChartPlugin(cherrypy.process.plugins.SimplePlugin):
+    def plog(self, message):
+        self.bus.log('[CHART PLUGIN]: {}'.format(message))
+    
     def start(self):
-        self.bus.log('Starting ChartPlugin')
+        self.plog('Starting ChartPlugin')
         cherrypy.engine.subscribe('queue_job', self.queue_job)
+        self.refresh_queue()
         
+        self.plog('Starting plot generation')
         self.thread = threading.Thread(target=self.generate)
         self.thread.start()
     
     def refresh_queue(self):
         self.queue = Queue.Queue()
-        try:
-            with open(os.path.join(MEDIA_DIR, 'jobs.dat'), 'r') as f:
-                jobs = [{'id': job[0], 'email': job[1]} for job in [job.replace('\n', '').split(' ') for job in job.readlines()]]
-        except:
-            jobs = []
-            
+        self.plog('Refreshing queue')
+        with jobs_lock:
+            self.plog('Loading jobs file')
+            try:
+                with open(os.path.join(MEDIA_DIR, 'jobs.dat'), 'r') as f:
+                    jobs = [{'id': job[0], 'email': job[1]} for job in [job.replace('\n', '').split(' ') for job in f.readlines()]]
+            except IOError:
+                jobs = []
+        
+        self.plog('Registering jobs')
         for job in jobs:
             self.queue.put(job)
     
     def stop(self):
-        self.bus.log('Stopping ChartPlugin')
+        self.plog('Stopping ChartPlugin')
         # Remove all future tasks (will be restored from file on next boot)
         while not self.queue.empty():
             try:
@@ -63,54 +72,65 @@ class ChartPlugin(cherrypy.process.plugins.SimplePlugin):
         self.queue.put({'id': job_name, 'email': email })
             
     def generate(self):
-        try:
-            while True:
-                job = self.queue.get(True)
-                self.bus.log('job: {}'.format(job))
-                if job == 'STOP':
-                    self.queue.task_done()
-                    return
+        while True:
+            job = self.queue.get(True)
+            self.plog('job: {}'.format(job))
+            if job == 'STOP':
+                self.queue.task_done()
+                return
 
-                with open(job_file(job['id']), 'r') as f:
-                    job_def = json.load(f)
-                self.bus.log('job def: {}'.format(job_def))
+            with open(job_file(job['id']), 'r') as f:
+                job_def = json.load(f)
+            self.plog('job def: {}'.format(job_def))
 
+            try:
                 for sequence in job_def['sequences']:
-                    image_path = os.path.join(MEDIA_DIR, 'static/plots/v1', job_def['round'], sequence + '.png')
+                    image_path = oss.path.join(MEDIA_DIR, 'static/plots/v1', job_def['round'], sequence + '.png')
                     if os.path.exists(image_path):
-                        self.bus.log('{} exists'.format(image_path))
+                        self.plog('{} exists'.format(image_path))
                         continue
 
-                    self.bus.log('Parsing states')
-                    inputs, reporter, complexes = parse_states(os.path.join(FILE_DIR, 'states', job_def['round'] + '.txt'))
-                    self.bus.log('Running pfunc')
-                    s = get_pfs(sequence, inputs, reporter, complexes)
-                    self.bus.log('Plotting')
-                    plot(s, os.path.join(MEDIA_DIR, job_def['round'], sequence), nsteps=150, title=sequence)
+                    try:
+                        os.makedirs(os.path.dirname(image_path))
+                    except OSError:
+                        pass
 
-                self.bus.log('Removing job')
+                    self.plog('Parsing states')
+                    inputs, reporter, complexes = parse_states(os.path.join(FILE_DIR, 'states', job_def['round'] + '.txt'))
+                    self.plog('Running pfunc')
+                    s = get_pfs(sequence, inputs, reporter, complexes)
+                    self.plog('Plotting')
+                    plot(s, image_path, nsteps=150, title=sequence)
+
+                self.plog('Removing job')
                 with jobs_lock:
                     with open(os.path.join(MEDIA_DIR, 'jobs.dat'), 'r+') as f:
-                        lines = f.readlines()
-                        lines = [line for line in f if not line.startswith(job['id'])]
+                        lines = [line for line in f.readlines() if not line.startswith(job['id'])]
+                        f.seek(0)
                         f.truncate()
                         f.write(''.join(lines))
 
-                self.bus.log('Next')
+                self.plog('Next')
                 self.queue.task_done()
-        except:
-            self.refresh_queue()
+            except Exception, e:
+                self.plog('Exception occurred, job will be skipped until next restart: {}'.format(e))
+                with open(job_file(job['id']), 'r') as f:
+                    job_def = json.load(f)
+                job_def['error'] = traceback.format_exc()
+                with open(job_file(job['id']), 'w') as f:
+                    json.dump(job_def, f)
+                self.queue.task_done()
 
 ChartPlugin(cherrypy.engine).subscribe()
 
 def get_result(job_id):
     with open(job_file(job_id)) as f:
         job = json.load(f)
-    path = lambda sequence: os.path.join(MEDIA_DIR, 'static/plots/v1', job['round'], sequence)
-    charts = [path(sequence) for sequence in job['sequences'] if os.path.exists(path(sequence))]
+    path = lambda sequence: os.path.join('v1', job['round'], sequence + '.png')
+    charts = [{'src': path(sequence), 'sequence': sequence} for sequence in job['sequences'] if os.path.exists(os.path.join(MEDIA_DIR, 'static/plots', path(sequence)))]
     percent_complete = int(re.match('(\d+)', str((len(charts) / len(job['sequences']))*100)).group(0))
     
-    return charts, percent_complete
+    return charts, percent_complete, job.get('error', None)
 
 class App:
     def __init__(self):
@@ -129,7 +149,7 @@ class App:
             return self.run_job(sequences, round, email)
         
         with open(job_file(job_id), 'w') as f:
-            json.dump({'sequences': sequences.split('\n'), 'round': round}, f)
+            json.dump({'sequences': [seq.strip() for seq in sequences.split('\n') if seq.strip() != ''], 'round': round}, f)
         
         with jobs_lock:
             with open(os.path.join(MEDIA_DIR, 'jobs.dat'), 'a') as f:
@@ -141,20 +161,34 @@ class App:
         
     @cherrypy.expose
     def jobstatus(self, job_id):
-        charts, percent_complete = get_result(job_id)
-        return json.dumps({'charts': templates['result_charts']().render(charts=charts), 'percent_complete': percent_complete})
+        charts, percent_complete, error = get_result(job_id)
+        return json.dumps({'charts': templates['result_charts']().render(charts=charts), 'percent_complete': percent_complete, 'error': True if error is not None else False})
 
+    @cherrypy.expose
+    def dl_chart(self, path):
+        return cherrypy.lib.static.serve_file(os.path.join(MEDIA_DIR, 'static/plots', path))
+    
 @cherrypy.popargs('job_id')
 class Result:
     @cherrypy.expose
     def index(self, job_id):
-        charts, percent_complete = get_result(job_id)
-        return templates['result']().render(job=job_id, charts=charts, percent_complete=percent_complete)
+        charts, percent_complete, error = get_result(job_id)
+        return templates['result']().render(job=job_id, charts=charts, percent_complete=percent_complete, error=error)
     
 if __name__ == '__main__':
     cherrypy.config.update({
         'server.socket_host': '0.0.0.0',
         'server.socket_port': 8081,
-        'tools.staticdir.root': os.path.join(MEDIA_DIR, 'static')
     })
-    cherrypy.quickstart(App(), '')
+    print('STATIC: {}'.format(os.path.join(MEDIA_DIR, 'static')))
+    cherrypy.quickstart(App(), '/', config={
+        '/static': {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': os.path.join(MEDIA_DIR, 'static'),
+        },
+        '/favicon.ico':
+        {
+            'tools.staticfile.on': True,
+            'tools.staticfile.filename': os.path.join(MEDIA_DIR, 'static/favicon.ico'),
+        }
+    })

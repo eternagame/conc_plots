@@ -2,29 +2,95 @@
 {% block head %}
 <script type="text/javascript">
 window.onload = function(){
-    setInterval(function(){
-        $.get('/jobstatus', {
+    var status = setInterval(function(){
+        $.getJSON('/jobstatus', {
             job_id: document.URL.split('/').filter(function(el){return el != ''}).pop()
         }, function(res) {
-           $('#completion').animate({
-               width: res.percent_complete + '%'
-           }).attr('aria-valuenow', res.percent_complete);
-           $('#charts').html(res.charts);
+            if (res.percent_complete > $('#completion-percentage').text()) {
+                $('#completion').animate({
+                    width: res.percent_complete + '%'
+                }).attr('aria-valuenow', res.percent_complete);
+
+                $('#completion-percentage').html(res.percent_complete);
+
+                $('#charts').html(res.charts);
+            }
+            
+            if (res.percent_complete == 100) {
+                clearInterval(status);
+                $('#completion-text').html('Completed&nbsp;&nbsp;<i class="fas fa-check" style="color: #2cb906;"></i>');
+            }
+            
+            if (res.error == true) {
+                $('#completion-text').html('Failed&nbsp;&nbsp;<i class="fas fa-times" style="color: #e20303;"></i>');
+                $('#error').show();
+            }
         });
     }, 5000);
+    
+    $('#modal').on('show.bs.modal', function (event) {
+        var img = $(event.relatedTarget);
+        var src = img.data('src');
+        var modal = $(this);
+        modal.find('.modal-body').html('<img src=' + src + '>');
+    })
 }
 </script>
+
+<style>
+    #modal img {
+        width: 90%;
+        display: block;
+        margin: auto;
+    }
+</style>
 {% endblock head %}
 
 {% block content %}
-    <h2>Job {{job}}</h2>
+    <h2>
+        Job {{job}}
+        {% if percent_complete == 100 %}
+        <button type="button" class="btn btn-primary disabled">Download Zip (Coming Soon)</button>
+        {% endif %}
+    </h2>
+
+    <div id="error" class="alert alert-danger" role="alert" style="{% if error == None %}display: None;{% endif %}">
+      We're sorry, it appears something went wrong with your job. Please contact the dev team by posting a new topic at
+      <a href="https://getsatisfaction.com/eternagame/">https://getsatisfaction.com/eternagame/</a>.
+      Make sure to include your job ID ({{job}}) in the topic
+    </div>
+
     {% if percent_complete != 100 %}
-    Completion: {{percent_complete}}%
-    <div class="progress">
+    <div id="completion-text" style="display: flex; align-items: center; margin: 6px;">
+        {% if error == None %}
+            Completion:&nbsp;<span id="completion-percentage">{{percent_complete}}</span>%&nbsp;&nbsp;<div class="spinner"></div>
+        {% else %}
+            Failed&nbsp;&nbsp;<i class="fas fa-times" style="color: #e20303;"></i>
+        {% endif %}
+    </div>
+    <div class="progress" style="margin: 0 6px 6px 6px;">
         <div id="completion" class="progress-bar" role="progressbar" style="width: {{percent_complete if percent_complete > 0 else 0.5 }}%" aria-valuenow="{{percent_complete}}" aria-valuemin="0" aria-valuemax="100"></div>
     </div>
     {% endif %}
-    <div id="#charts">
+
+    <div class="row" id="charts">
         {% include 'result_charts.html' %}
+    </div>
+    
+    <div class="modal" id="modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+                </div>
+                <div class="modal-body"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 {% endblock %}
