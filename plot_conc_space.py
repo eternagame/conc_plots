@@ -100,7 +100,7 @@ def get_pfs_multiple(seqs, inputs=None, reporter=None, complexes=None,
         inputs, reporter, complexes = parse_states(inputfile)
 
     p = mp.Pool()
-    results = p.map(get_pfs_wrapper, it.izip(
+    results = p.map(get_pfs, it.izip(
         seqs, it.repeat(inputs), it.repeat(reporter),
         it.repeat(complexes)))
     return pd.concat(results, axis=1).T
