@@ -177,7 +177,7 @@ def plot(s, outfile, nsteps=25, reporter=1e-9, title=None):
         nsteps (int): number of increments along each axis
         reporter (float): concentration of reporter
     """
-    plt.rc('text', usetex=True)
+    plt.rc('text')
 
     m = get_conc_space(s, nsteps, reporter)
     concrange = np.logspace(-15, -3, nsteps)
