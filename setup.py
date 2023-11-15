@@ -8,10 +8,10 @@ setup(
 	name='conc-plots',
 	packages=['conc_plots'],
 	package_dir={'conc_plots': root_path},
-	python_requires='>2.6,<3',
+	python_requires='>3.10,<4',
 	install_requires=[
-        'numpy>=1.14.2',
-        'pandas>=0.22.0',
-        'matplotlib>=2.2.2',
+        'numpy>=1.14,<2',
+        'pandas>=0.22.0,<3',
+        'matplotlib>=3.1,<4',
     ],
 )

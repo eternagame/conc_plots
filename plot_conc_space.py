@@ -4,7 +4,6 @@ import numpy as np
 import nupack
 import multiprocessing as mp
 import itertools as it
-import os
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
@@ -54,9 +53,9 @@ def get_pfs(sequence, inputs, reporter, complexes):
     seqs = [sequence] + inputs + [reporter]
     rcomplexes = {k: [[1] + list(x)
                   for x in it.permutations(v + [len(seqs)], len(v) + 1)]
-                  for k,v in complexes.iteritems()}
+                  for k,v in complexes.items()}
     complexes = {k: [[1] + list(x) for x in it.permutations(v, len(v))]
-                 for k,v in complexes.iteritems()}
+                 for k,v in complexes.items()}
     allorders = [order for orders in rcomplexes.values() for order in orders] + \
                 [order for orders in complexes.values() for order in orders] + \
                 [(1,), (1, len(seqs))]
@@ -181,7 +180,7 @@ def plot(s, outfile, nsteps=25, reporter=1e-9, title=None):
 
     m = get_conc_space(s, nsteps, reporter)
     concrange = np.logspace(-15, -3, nsteps)
-    ticks = np.arange(0, nsteps, nsteps/4)
+    ticks = np.arange(0, nsteps, nsteps//4)
 
     # find slice closest to reporter concentration
     sliceidx = np.argmin(np.abs(np.log10(concrange) - np.log10(reporter)))
@@ -236,7 +235,7 @@ def plot(s, outfile, nsteps=25, reporter=1e-9, title=None):
     if title is not None:
         plt.suptitle(title)
     plt.tight_layout(rect=[0,0,1,.95])
-    plt.savefig(outfile, height=800, width=600)
+    plt.savefig(outfile, pil_kwargs={"height": 800,"width": 600 })
     plt.close()
 
 def main():
