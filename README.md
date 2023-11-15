@@ -2,7 +2,8 @@
 
 ## Setup
 
-`pip install -r requirements.txt`
+* Download and compile Nupack 3 and set the NUPACKHOME environment variable to the nupack root directory
+* Install python requirements via `pip install -r requirements.txt`
 
 ## Usage
 
