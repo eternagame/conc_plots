@@ -1,11 +1,14 @@
 import argparse
 import pandas as pd
 import numpy as np
-import nupack
 import multiprocessing as mp
 import itertools as it
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+if __package__ is None or __package__ == '':
+    import nupack
+else:
+    from . import nupack
 
 rt = 0.616
 
